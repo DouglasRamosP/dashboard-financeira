@@ -1,3 +1,5 @@
+import { EyeIcon, EyeOff } from 'lucide-react'
+import { useState } from 'react'
 import { Link } from 'react-router'
 
 import { Button } from '@/components/ui/button'
@@ -12,6 +14,8 @@ import {
 import { Input } from '@/components/ui/input'
 
 const SignupPage = () => {
+  const [showPassword, setShowPassword] = useState(false)
+
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-center gap-3">
       <Card className="w-[500px]">
@@ -25,7 +29,19 @@ const SignupPage = () => {
           <Input placeholder="Nome"></Input>
           <Input placeholder="Sobrenome"></Input>
           <Input placeholder="Email"></Input>
-          <Input type="password" placeholder="Senha"></Input>
+          <div className="relative">
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Senha"
+            ></Input>
+            <Button
+              variant="ghost"
+              className="absolute bottom-0 right-0 top-0 my-auto mr-1 h-8 w-8 text-muted-foreground"
+              onClick={() => setShowPassword((prev) => !prev)}
+            >
+              {showPassword ? <EyeOff /> : <EyeIcon />}
+            </Button>
+          </div>
         </CardContent>
         <CardFooter>
           <Button className="w-full">Registrar</Button>
