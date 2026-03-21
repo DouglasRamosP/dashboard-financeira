@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 
 const SignupPage = () => {
@@ -28,6 +29,24 @@ const SignupPage = () => {
           <Input placeholder="Email"></Input>
           <PasswordInput placeholder="Senha" />
           <PasswordInput placeholder="Confirme a Senha" />
+
+          <div className="flex items-start gap-2 pt-2">
+            <Checkbox id="terms1" />
+            <label
+              htmlFor="terms1"
+              className="text-sm leading-tight text-muted-foreground"
+            >
+              Ao clicar em &quot;Criar conta&quot;, você aceita o
+              <a href="#" className="ml-1 font-medium text-primary underline">
+                termo de uso
+              </a>
+              , e a
+              <a href="#" className="ml-1 font-medium text-primary underline">
+                política de privacidade
+              </a>
+              .
+            </label>
+          </div>
         </CardContent>
         <CardFooter>
           <Button className="w-full">Registrar</Button>
