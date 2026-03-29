@@ -186,7 +186,7 @@ const SignupPage = () => {
           </Card>
         </form>
       </Form>
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center text-sm">
         <p className="text-center opacity-50">Já tem uma conta?</p>
         <Button variant="link" className="px-2" asChild>
           <Link to="/login">Faça login </Link>
