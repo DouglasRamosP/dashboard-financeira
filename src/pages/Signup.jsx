@@ -1,6 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useMutation } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
+import { toast } from 'sonner'
 import { z } from 'zod'
 
 import PasswordInput from '@/components/password-input'
@@ -23,6 +25,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { api } from '@/lib/axios'
 
 export const SignupSchema = z
   .object({
@@ -47,6 +50,21 @@ export const SignupSchema = z
   })
 
 const SignupPage = () => {
+  const navigate = useNavigate()
+
+  const SignupMutation = useMutation({
+    mutationKey: ['signup'],
+    mutationFn: async (variables) => {
+      const response = await api.post('api/users', {
+        first_name: variables.firstName,
+        last_name: variables.lastName,
+        email: variables.email,
+        password: variables.password,
+      })
+      return response.data
+    },
+  })
+
   const methods = useForm({
     resolver: zodResolver(SignupSchema),
     defaultValues: {
@@ -60,7 +78,36 @@ const SignupPage = () => {
   })
 
   const handleSubmit = (data) => {
-    console.log(data)
+    SignupMutation.mutate(data, {
+      onSuccess: (createdUser) => {
+        const accessToken =
+          createdUser?.tokens?.accessToken ??
+          createdUser?.token?.accessToken ??
+          createdUser?.accessToken
+        const refreshToken =
+          createdUser?.tokens?.refreshToken ??
+          createdUser?.token?.refreshToken ??
+          createdUser?.refreshToken
+
+        if (accessToken) {
+          localStorage.setItem('accessToken', accessToken)
+        }
+
+        if (refreshToken) {
+          localStorage.setItem('refreshToken', refreshToken)
+        }
+
+        toast.success('Conta criada com sucesso! Faça login para continuar.')
+        methods.reset()
+        navigate('/login')
+      },
+      onError: (error) => {
+        const message =
+          error.response?.data?.message ||
+          'Ocorreu um erro ao criar a conta. Tente novamente.'
+        toast.error(message)
+      },
+    })
   }
 
   return (
@@ -179,7 +226,7 @@ const SignupPage = () => {
               />
             </CardContent>
             <CardFooter>
-              <Button onSubmit={methods.handleSubmit} className="w-full">
+              <Button type="submit" className="w-full">
                 Registrar
               </Button>
             </CardFooter>
