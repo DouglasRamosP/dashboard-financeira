@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
@@ -76,6 +77,31 @@ const SignupPage = () => {
       termsAccepted: false,
     },
   })
+
+  useEffect(() => {
+    const init = async () => {
+      const accessToken = localStorage.getItem('accessToken')
+      const refreshToken = localStorage.getItem('refreshToken')
+
+      if (!accessToken || !refreshToken) return
+
+      try {
+        await api.get('api/users/me', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        })
+
+        navigate('/')
+      } catch (error) {
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
+        console.error('Error fetching user data:', error)
+      }
+    }
+
+    init()
+  }, [navigate])
 
   const handleSubmit = (data) => {
     SignupMutation.mutate(data, {
