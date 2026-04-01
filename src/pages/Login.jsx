@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useContext, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
@@ -24,7 +23,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { api } from '@/lib/axios'
+import { AuthContext } from '@/contexts/auth'
 
 export const LoginSchema = z.object({
   email: z.string().email({ message: 'Email inválido' }),
@@ -34,50 +33,8 @@ export const LoginSchema = z.object({
 })
 
 const LoginPage = () => {
+  const { login, user } = useContext(AuthContext)
   const navigate = useNavigate()
-
-  const LoginMutation = useMutation({
-    mutationKey: ['login'],
-    mutationFn: async (variables) => {
-      const response = await api.post('api/users/login', {
-        email: variables.email,
-        password: variables.password,
-      })
-      return response.data
-    },
-  })
-
-  const handleSubmit = (data) => {
-    LoginMutation.mutate(data, {
-      onSuccess: (loginUser) => {
-        const accessToken =
-          loginUser?.tokens?.accessToken ??
-          loginUser?.token?.accessToken ??
-          loginUser?.accessToken
-        const refreshToken =
-          loginUser?.tokens?.refreshToken ??
-          loginUser?.token?.refreshToken ??
-          loginUser?.refreshToken
-
-        if (!accessToken || !refreshToken) {
-          toast.error('Login inválido: a API não retornou os tokens esperados.')
-          return
-        }
-
-        localStorage.setItem('accessToken', accessToken)
-        localStorage.setItem('refreshToken', refreshToken)
-
-        toast.success('Login realizado com sucesso!')
-        console.log(loginUser)
-        navigate('/')
-      },
-      onError: (error) => {
-        const message =
-          error?.response?.data?.message || 'Ocorreu um erro ao fazer login'
-        toast.error(message)
-      },
-    })
-  }
 
   const methods = useForm({
     resolver: zodResolver(LoginSchema),
@@ -88,29 +45,24 @@ const LoginPage = () => {
   })
 
   useEffect(() => {
-    const init = async () => {
-      const accessToken = localStorage.getItem('accessToken')
-      const refreshToken = localStorage.getItem('refreshToken')
-
-      if (!accessToken || !refreshToken) return
-
-      try {
-        await api.get('api/users/me', {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        })
-
-        navigate('/')
-      } catch (error) {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        console.error('Error fetching user data:', error)
-      }
+    if (user) {
+      navigate('/')
     }
+  }, [navigate, user])
 
-    init()
-  }, [navigate])
+  const handleSubmit = async (data) => {
+    try {
+      await login(data)
+      toast.success('Login realizado com sucesso!')
+      navigate('/')
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Ocorreu um erro ao fazer login'
+      toast.error(message)
+    }
+  }
 
   return (
     <div className="flex h-screen w-screen flex-col items-center justify-center gap-3">
@@ -154,7 +106,7 @@ const LoginPage = () => {
               />
             </CardContent>
             <CardFooter className="flex flex-col gap-3">
-              <Button onSubmit={methods.handleSubmit} className="w-full">
+              <Button type="submit" className="w-full">
                 Entrar
               </Button>
             </CardFooter>

@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useContext, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate } from 'react-router'
 import { toast } from 'sonner'
@@ -26,7 +25,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { api } from '@/lib/axios'
+import { AuthContext } from '@/contexts/auth'
 
 export const SignupSchema = z
   .object({
@@ -51,20 +50,8 @@ export const SignupSchema = z
   })
 
 const SignupPage = () => {
+  const { user, signup } = useContext(AuthContext)
   const navigate = useNavigate()
-
-  const SignupMutation = useMutation({
-    mutationKey: ['signup'],
-    mutationFn: async (variables) => {
-      const response = await api.post('api/users', {
-        first_name: variables.firstName,
-        last_name: variables.lastName,
-        email: variables.email,
-        password: variables.password,
-      })
-      return response.data
-    },
-  })
 
   const methods = useForm({
     resolver: zodResolver(SignupSchema),
@@ -79,61 +66,23 @@ const SignupPage = () => {
   })
 
   useEffect(() => {
-    const init = async () => {
-      const accessToken = localStorage.getItem('accessToken')
-      const refreshToken = localStorage.getItem('refreshToken')
-
-      if (!accessToken || !refreshToken) return
-
-      try {
-        await api.get('api/users/me', {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        })
-
-        navigate('/')
-      } catch (error) {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        console.error('Error fetching user data:', error)
-      }
+    if (user) {
+      navigate('/')
     }
+  }, [navigate, user])
 
-    init()
-  }, [navigate])
-
-  const handleSubmit = (data) => {
-    SignupMutation.mutate(data, {
-      onSuccess: (createdUser) => {
-        const accessToken =
-          createdUser?.tokens?.accessToken ??
-          createdUser?.token?.accessToken ??
-          createdUser?.accessToken
-        const refreshToken =
-          createdUser?.tokens?.refreshToken ??
-          createdUser?.token?.refreshToken ??
-          createdUser?.refreshToken
-
-        if (accessToken) {
-          localStorage.setItem('accessToken', accessToken)
-        }
-
-        if (refreshToken) {
-          localStorage.setItem('refreshToken', refreshToken)
-        }
-
-        toast.success('Conta criada com sucesso! Faça login para continuar.')
-        methods.reset()
-        navigate('/login')
-      },
-      onError: (error) => {
-        const message =
-          error.response?.data?.message ||
-          'Ocorreu um erro ao criar a conta. Tente novamente.'
-        toast.error(message)
-      },
-    })
+  const handleSubmit = async (data) => {
+    try {
+      await signup(data)
+      toast.success('Conta criada com sucesso! Faça login para continuar.')
+      methods.reset()
+      navigate('/login')
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        'Ocorreu um erro ao criar a conta. Tente novamente.'
+      toast.error(message)
+    }
   }
 
   return (
