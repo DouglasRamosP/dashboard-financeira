@@ -1,13 +1,16 @@
-import { createContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 
 import { api } from '@/lib/axios'
 
 export const AuthContext = createContext({
   user: null,
+  loading: true,
   login: async () => {},
   signup: async () => {},
   logout: () => {},
 })
+
+export const useAuthContext = () => useContext(AuthContext)
 
 const getTokensFromResponse = (payload) => {
   const accessToken =
@@ -27,13 +30,17 @@ const getTokensFromResponse = (payload) => {
 
 export const AuthContexProvider = ({ children }) => {
   const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const init = async () => {
       const accessToken = localStorage.getItem('accessToken')
       const refreshToken = localStorage.getItem('refreshToken')
 
-      if (!accessToken || !refreshToken) return
+      if (!accessToken || !refreshToken) {
+        setLoading(false)
+        return
+      }
 
       try {
         const response = await api.get('api/users/me', {
@@ -47,6 +54,8 @@ export const AuthContexProvider = ({ children }) => {
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
         setUser(null)
+      } finally {
+        setLoading(false)
       }
     }
 
@@ -101,6 +110,7 @@ export const AuthContexProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
+        loading,
         login,
         signup,
         logout,

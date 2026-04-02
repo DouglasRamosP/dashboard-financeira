@@ -33,7 +33,7 @@ export const LoginSchema = z.object({
 })
 
 const LoginPage = () => {
-  const { login, user } = useContext(AuthContext)
+  const { login, user, loading } = useContext(AuthContext)
   const navigate = useNavigate()
 
   const methods = useForm({
@@ -45,10 +45,10 @@ const LoginPage = () => {
   })
 
   useEffect(() => {
-    if (user) {
+    if (!loading && user) {
       navigate('/')
     }
-  }, [navigate, user])
+  }, [loading, navigate, user])
 
   const handleSubmit = async (data) => {
     try {
