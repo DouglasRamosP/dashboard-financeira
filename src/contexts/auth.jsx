@@ -1,5 +1,9 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
+import {
+  LOCAL_STORAGE_ACCESS_TOKEN_KEY,
+  LOCAL_STORAGE_REFRESH_TOKEN_KEY,
+} from '@/constants/local-storage'
 import { api } from '@/lib/axios'
 
 export const AuthContext = createContext({
@@ -34,8 +38,8 @@ export const AuthContexProvider = ({ children }) => {
 
   useEffect(() => {
     const init = async () => {
-      const accessToken = localStorage.getItem('accessToken')
-      const refreshToken = localStorage.getItem('refreshToken')
+      const accessToken = localStorage.getItem(LOCAL_STORAGE_ACCESS_TOKEN_KEY)
+      const refreshToken = localStorage.getItem(LOCAL_STORAGE_REFRESH_TOKEN_KEY)
 
       if (!accessToken || !refreshToken) {
         setLoading(false)
@@ -51,8 +55,8 @@ export const AuthContexProvider = ({ children }) => {
 
         setUser(response.data)
       } catch {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
+        localStorage.removeItem(LOCAL_STORAGE_ACCESS_TOKEN_KEY)
+        localStorage.removeItem(LOCAL_STORAGE_REFRESH_TOKEN_KEY)
         setUser(null)
       } finally {
         setLoading(false)
@@ -86,8 +90,8 @@ export const AuthContexProvider = ({ children }) => {
       throw new Error('A API nao retornou os tokens esperados.')
     }
 
-    localStorage.setItem('accessToken', accessToken)
-    localStorage.setItem('refreshToken', refreshToken)
+    localStorage.setItem(LOCAL_STORAGE_ACCESS_TOKEN_KEY, accessToken)
+    localStorage.setItem(LOCAL_STORAGE_REFRESH_TOKEN_KEY, refreshToken)
 
     const meResponse = await api.get('api/users/me', {
       headers: {
@@ -101,8 +105,8 @@ export const AuthContexProvider = ({ children }) => {
   }
 
   const logout = () => {
-    localStorage.removeItem('accessToken')
-    localStorage.removeItem('refreshToken')
+    localStorage.removeItem(LOCAL_STORAGE_ACCESS_TOKEN_KEY)
+    localStorage.removeItem(LOCAL_STORAGE_REFRESH_TOKEN_KEY)
     setUser(null)
   }
 
