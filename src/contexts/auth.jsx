@@ -1,45 +1,53 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 
 import {
-  LOCAL_STORAGE_ACCESS_TOKEN_KEY,
-  LOCAL_STORAGE_REFRESH_TOKEN_KEY,
-} from '@/constants/local-storage'
-import { api } from '@/lib/axios'
+  api,
+  clearTokens,
+  getStoredTokens,
+  getTokensFromResponse,
+  storeTokens,
+} from '@/lib/axios'
 
 export const AuthContext = createContext({
   user: null,
   loading: true,
+  isInitializing: true,
   login: async () => {},
   signup: async () => {},
   logout: () => {},
+  signOut: () => {},
 })
 
 export const useAuthContext = () => useContext(AuthContext)
 
-const getTokensFromResponse = (payload) => {
-  const accessToken =
-    payload?.tokens?.accessToken ??
-    payload?.token?.accessToken ??
-    payload?.accessToken
-  const refreshToken =
-    payload?.tokens?.refreshToken ??
-    payload?.token?.refreshToken ??
-    payload?.refreshToken
+const normalizeUser = (payload) => {
+  const firstName = payload?.firstName ?? payload?.first_name ?? ''
+  const lastName = payload?.lastName ?? payload?.last_name ?? ''
 
   return {
-    accessToken,
-    refreshToken,
+    id: payload?.id ?? '',
+    email: payload?.email ?? '',
+    firstName,
+    lastName,
+    first_name: firstName,
+    last_name: lastName,
   }
 }
 
 export const AuthContexProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const hasInitialized = useRef(false)
 
   useEffect(() => {
+    if (hasInitialized.current) {
+      return
+    }
+
+    hasInitialized.current = true
+
     const init = async () => {
-      const accessToken = localStorage.getItem(LOCAL_STORAGE_ACCESS_TOKEN_KEY)
-      const refreshToken = localStorage.getItem(LOCAL_STORAGE_REFRESH_TOKEN_KEY)
+      const { accessToken, refreshToken } = getStoredTokens()
 
       if (!accessToken || !refreshToken) {
         setLoading(false)
@@ -47,16 +55,14 @@ export const AuthContexProvider = ({ children }) => {
       }
 
       try {
-        const response = await api.get('api/users/me', {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        })
+        const response = await api.get('api/users/me')
 
-        setUser(response.data)
-      } catch {
-        localStorage.removeItem(LOCAL_STORAGE_ACCESS_TOKEN_KEY)
-        localStorage.removeItem(LOCAL_STORAGE_REFRESH_TOKEN_KEY)
+        setUser(normalizeUser(response.data))
+      } catch (error) {
+        if (error?.response?.status === 401) {
+          clearTokens()
+        }
+
         setUser(null)
       } finally {
         setLoading(false)
@@ -90,23 +96,17 @@ export const AuthContexProvider = ({ children }) => {
       throw new Error('A API nao retornou os tokens esperados.')
     }
 
-    localStorage.setItem(LOCAL_STORAGE_ACCESS_TOKEN_KEY, accessToken)
-    localStorage.setItem(LOCAL_STORAGE_REFRESH_TOKEN_KEY, refreshToken)
+    storeTokens({ accessToken, refreshToken })
 
-    const meResponse = await api.get('api/users/me', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    })
+    const meResponse = await api.get('api/users/me')
 
-    setUser(meResponse.data)
+    setUser(normalizeUser(meResponse.data))
 
     return payload
   }
 
   const logout = () => {
-    localStorage.removeItem(LOCAL_STORAGE_ACCESS_TOKEN_KEY)
-    localStorage.removeItem(LOCAL_STORAGE_REFRESH_TOKEN_KEY)
+    clearTokens()
     setUser(null)
   }
 
@@ -115,12 +115,16 @@ export const AuthContexProvider = ({ children }) => {
       value={{
         user,
         loading,
+        isInitializing: loading,
         login,
         signup,
         logout,
+        signOut: logout,
       }}
     >
       {children}
     </AuthContext.Provider>
   )
 }
+
+export const AuthContextProvider = AuthContexProvider
